@@ -1,54 +1,73 @@
-import { framer, CanvasNode, useIsAllowedTo } from "framer-plugin"
-import { useState, useEffect } from "react"
+import { framer } from "framer-plugin"
+import { useState, useCallback } from "react"
 import "./App.css"
+import { TypographyTab } from "./tabs/TypographyTab"
+import { ColorTab } from "./tabs/ColorTab"
 
 framer.showUI({
   position: "top right",
-  width: 240,
-  height: 95,
+  width: 340,
+  height: 620,
+  resizable: true,
 })
 
-function useSelection() {
-  const [selection, setSelection] = useState<CanvasNode[]>([])
+type Tab = "typography" | "colors"
 
-  useEffect(() => {
-    return framer.subscribeToSelection(setSelection)
-  }, [])
-
-  return selection
-}
+export type Toast = {
+  message: string
+  type: "success" | "error" | "info"
+} | null
 
 export function App() {
-  const selection = useSelection()
-  const isAllowed = useIsAllowedTo("addSVG")
-  const layer = selection.length === 1 ? "layer" : "layers"
+  const [activeTab, setActiveTab] = useState<Tab>("typography")
+  const [toast, setToast] = useState<Toast>(null)
 
-  const handleAddSvg = async () => {
-    await framer.addSVG({
-      svg: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"><path fill="#999" d="M20 0v8h-8L4 0ZM4 8h8l8 8h-8v8l-8-8Z"/></svg>`,
-      name: "Logo.svg",
-    })
-  }
+  const showToast = useCallback(
+    (message: string, type: "success" | "error" | "info" = "success") => {
+      setToast({ message, type })
+      setTimeout(() => setToast(null), 2200)
+    },
+    [],
+  )
 
   return (
-    <main>
-      <p>
-        Welcome! Check out the{" "}
-        <a
-          href="https://framer.com/developers/plugins/introduction"
-          target="_blank"
+    <div className="app">
+      {/* Title bar */}
+      <div className="title-bar">
+        <div className="title-bar-logo">
+          <svg viewBox="0 0 18 18" fill="none" width="16" height="16">
+            <rect x="1" y="1" width="16" height="16" rx="4" fill="var(--accent)" />
+            <path d="M5 9h8M9 5v8" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" />
+          </svg>
+          <span className="title-bar-name">StyleFlow</span>
+        </div>
+      </div>
+
+      {/* Segmented tabs — full-width like the reference */}
+      <div className="seg-tabs">
+        <button
+          className={`seg-tab ${activeTab === "typography" ? "seg-tab--active" : ""}`}
+          onClick={() => setActiveTab("typography")}
         >
-          Docs
-        </a>{" "}
-        to start. You have {selection.length} {layer} selected.
-      </p>
-      <button
-        className="framer-button-primary"
-        onClick={handleAddSvg}
-        disabled={!isAllowed}
-      >
-        Insert Logo
-      </button>
-    </main>
+          Typography
+        </button>
+        <button
+          className={`seg-tab ${activeTab === "colors" ? "seg-tab--active" : ""}`}
+          onClick={() => setActiveTab("colors")}
+        >
+          Colors
+        </button>
+      </div>
+
+      {/* Content */}
+      <main className="main">
+        {activeTab === "typography" && <TypographyTab showToast={showToast} />}
+        {activeTab === "colors" && <ColorTab showToast={showToast} />}
+      </main>
+
+      {toast && (
+        <div className={`toast toast--${toast.type}`}>{toast.message}</div>
+      )}
+    </div>
   )
 }
